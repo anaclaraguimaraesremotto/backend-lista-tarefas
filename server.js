@@ -1,33 +1,82 @@
 const express = require('express')
+const sqlite3 = require('sqlite3').verbose();
 const app = express();
 const PORT = 3000;
 
-app.use(express.json());
+const dp = new sqlite3.Database('banco-de-dados.db')
 
-let tarefas = [];
+db.serialize(() =>{
+    db.run("CREATE TABLE IF NOT EXISTS tarefas (id INTEGER PRIMARY KEY, tarefa TEXT)");
+});
+
+app.use(express.json());
 
 app.post('/tarefas', (req, res) => {
     const {tarefa} = req.body;
-    tarefas.push(tarefa);
-    res.status(201).json('Tarefa adicionada com sucesso');
+
+    db.run("INSERT INTO tarefas (tarefa) VALUES (?)", [tarefa], function(err) {
+        if(err) {
+            return res.status(500).json({error: err.message});
+        }
+        res.status(201).json({id: this.lastID, tarefa});
+    });
 });
 
 app.get('/tarefas', (req, res) => {
-    res.status(200).json(tarefas)
+    db.all("SELECT * FROM tarefas", [], (err, rows) => {
+        if(err) {
+            return res.status(500).json({ error: err.message});
+        } 
+        res.status(200).json(rows)
+    });
 });
 
-// app.get('/tarefas/:id', (req, res) => {
-    
-// })
+app.get('/tarefas/:id', (req, res) => {
+    const {id} = req.params;
+    db.get("SELECT * FROM tarefas WHERE id =?", [id], (err, row) => {
+        if(err) {
+            return res.status(500).json({ error: err.message});
+        } 
+        if (row) {
+            res.status(200).json(row);
+        } else {
+            res.status(404).json({error: 'Tarefa não encontrada!'})
+        }
+    })
+})
 
-// app.put('/tarefas/:id', (req, res) => {
+app.put('/tarefas/:id', (req, res) => {
+    const { id } = req.params;
+    const { tarefas } = req.body;
 
-// })
+    db.run("UPDATE tarefas SET tarefa = ? WHERE id = ?", [tarefa, id], function(err)
+    {
+        if(err) {
+            return res.status(500).json({ error: err.message});
+        } 
+        if (this.changes) {
+            res.status(200).json({message: 'Tarefa atualizada com sucesso!'});
+        } else {
+            res.status(404).json({error: 'Tarefa não encontrada!'})
+        } 
+    })
+})
 
-// app.delete('/tarefas/:id', (req, res) => {
+app.delete('/tarefas/:id', (req, res) => {
+    const { id } = req.params;
 
-// })
+    db.run("DELETE FROM tarefas WHERE id = ?", [id], function(err){
+        if(err) {
+            return res.status(500).json({ error: err.message});
+        } 
+        if (this.changes) {
+            res.status(200).json({message: 'Tarefa removida com sucesso!'});
+        } else {
+            res.status(404).json({error: 'Tarefa não encontrada!'})
+        } 
+    });
+});
 
 app.listen(PORT, () =>{
-    console.log(`Servidor rodando na porta em http://localhost:${PORT}`);
+    console.log(`Servidor rodando na porta http://localhost:${PORT}`);
 });
