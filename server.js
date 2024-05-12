@@ -1,9 +1,11 @@
 const express = require('express')
 const sqlite3 = require('sqlite3').verbose();
+const cors = require('cors')
 const app = express();
+app.use(cors());
 const PORT = 3000;
 
-const dp = new sqlite3.Database('banco-de-dados.db')
+const db = new sqlite3.Database('banco-de-dados.db')
 
 db.serialize(() =>{
     db.run("CREATE TABLE IF NOT EXISTS tarefas (id INTEGER PRIMARY KEY, tarefa TEXT)");
